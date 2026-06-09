@@ -10,37 +10,41 @@ import { searchMeetings } from "@/core/rag/search-meetings";
 import { systemPrompt } from "@/core/rag/prompt";
 import { appConfig } from "@/config/app.config";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const serviceAdapter = new OpenAIAdapter({ openai, model: appConfig.llm.model });
-const store = createContextStore();
-
-const runtime = new CopilotRuntime({
-  actions: () => [
-    {
-      name: "searchMeetings",
-      description:
-        "Busca trechos relevantes nas transcrições de reuniões para fundamentar a resposta.",
-      parameters: [
-        {
-          name: "query",
-          type: "string",
-          description: "A pergunta ou termos de busca",
-          required: true,
-        },
-        {
-          name: "topK",
-          type: "number",
-          description: "Quantos trechos retornar",
-          required: false,
-        },
-      ],
-      handler: async ({ query, topK }: { query: string; topK?: number }) =>
-        searchMeetings(store, { query, topK }),
-    },
-  ],
-});
-
 export const POST = async (req: NextRequest) => {
+  // Instantiate lazily, on first request, NOT at module import time. Creating
+  // these at module scope forces `DATABASE_URL`/`OPENAI_API_KEY` to be present at
+  // BUILD time (the context store calls `neon(process.env.DATABASE_URL!)` via
+  // `@/db/client`), which breaks `next build` for a deployable template.
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const serviceAdapter = new OpenAIAdapter({ openai, model: appConfig.llm.model });
+  const store = createContextStore();
+
+  const runtime = new CopilotRuntime({
+    actions: () => [
+      {
+        name: "searchMeetings",
+        description:
+          "Busca trechos relevantes nas transcrições de reuniões para fundamentar a resposta.",
+        parameters: [
+          {
+            name: "query",
+            type: "string",
+            description: "A pergunta ou termos de busca",
+            required: true,
+          },
+          {
+            name: "topK",
+            type: "number",
+            description: "Quantos trechos retornar",
+            required: false,
+          },
+        ],
+        handler: async ({ query, topK }: { query: string; topK?: number }) =>
+          searchMeetings(store, { query, topK }),
+      },
+    ],
+  });
+
   const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
     runtime,
     serviceAdapter,
