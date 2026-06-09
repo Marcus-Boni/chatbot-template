@@ -16,6 +16,14 @@ export function ChatPanel() {
       // CopilotKit's default system message, which is sufficient here (no need for the
       // heavier makeSystemMessage override).
       instructions={appConfig.systemPrompt}
+      // Static suggestion pills (CopilotKit 1.59.5): `suggestions` accepts
+      // `Omit<Suggestion, "isLoading">[]` (verified in @copilotkit/core 1.59.5
+      // index.d.mts: `{ title, message }`). Passing a static array shows fixed
+      // prompts without AI generation, grounding the user's first question.
+      suggestions={appConfig.suggestedQuestions.map((q) => ({
+        title: q,
+        message: q,
+      }))}
       labels={{
         title: appConfig.brand.name,
         initial: "Pergunte sobre as reuniões da " + appConfig.brand.name + ".",
