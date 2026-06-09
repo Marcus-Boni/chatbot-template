@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { CopilotChat } from "@copilotkit/react-ui";
 import { useCopilotChat } from "@copilotkit/react-core";
 import { appConfig } from "@/config/app.config";
+import { SearchMeetingsRender } from "./SearchMeetingsRender";
 
 export function ChatPanel() {
   // Conversation persistence (Task 13).
@@ -72,7 +73,33 @@ export function ChatPanel() {
   }, [visibleMessages, conversationId]);
 
   return (
-    <CopilotChat
+    <div className="flex h-full flex-col">
+      {/* Pane header */}
+      <header className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4 sm:px-7">
+        <div>
+          <h1 className="font-[family-name:var(--font-display)] text-lg font-semibold tracking-tight text-[var(--fg)]">
+            Conversa
+          </h1>
+          <p className="mt-0.5 text-xs text-[var(--fg-muted)]">
+            Pergunte sobre as reuniões — cada resposta é fundamentada e citada.
+          </p>
+        </div>
+        <span className="hidden items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--panel)] px-3 py-1 sm:inline-flex">
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-bright)]" />
+          <span className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-[var(--fg-subtle)]">
+            Online
+          </span>
+        </span>
+      </header>
+
+      {/* Generative-UI: renders CitationCards under assistant turns when the
+          backend searchMeetings action runs. Renders nothing itself. */}
+      <SearchMeetingsRender />
+
+      {/* CopilotKit chat surface, skinned to the dark console via the
+          .copilotkit-surface CSS-variable theme in globals.css. */}
+      <div className="copilotkit-surface mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-3 sm:px-5">
+        <CopilotChat
       // System prompt wiring (CopilotKit 1.59.5):
       // The authoritative grounding/citation prompt lives in appConfig.systemPrompt and
       // MUST be applied client-side — the backend route's properties.systemMessage is a
@@ -95,7 +122,9 @@ export function ChatPanel() {
         title: appConfig.brand.name,
         initial: "Pergunte sobre as reuniões da " + appConfig.brand.name + ".",
       }}
-      className="h-full"
-    />
+        className="h-full"
+        />
+      </div>
+    </div>
   );
 }
