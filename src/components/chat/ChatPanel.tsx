@@ -1,9 +1,69 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { CopilotChat } from "@copilotkit/react-ui";
+import { useCopilotChat } from "@copilotkit/react-core";
 import { appConfig } from "@/config/app.config";
 
 export function ChatPanel() {
+  // Conversation persistence (Task 13).
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const created = useRef(false);
+
+  // Create a conversation once, on mount. The `created` ref guard makes this
+  // fire exactly once even under React Strict Mode's double-invoke in dev.
+  useEffect(() => {
+    if (created.current) return;
+    created.current = true;
+    void fetch("/api/conversations", { method: "POST" })
+      .then((r) => r.json())
+      .then((d: { id: string }) => setConversationId(d.id))
+      .catch(() => {
+        // Allow a retry on a later mount if creation failed.
+        created.current = false;
+      });
+  }, []);
+
+  // Message persistence wiring (verified against installed CopilotKit 1.59.5 type defs):
+  //   - `useCopilotChat()` (the open-source-friendly headless hook) returns
+  //     `UseCopilotChatReturn`, which is `Omit<..., "messages" | "sendMessage" | ...>`.
+  //     Crucially `visibleMessages: Message$1[]` is NOT omitted, so it is the
+  //     observable array we can read here without a publicApiKey
+  //     (`@copilotkit/react-core/dist/index.d.mts` lines 153 + 303).
+  //   - Each `Message` (`@copilotkit/runtime-client-gql` client/types.d.mts) has
+  //     `id` + a `isTextMessage()` type guard narrowing to `TextMessage`
+  //     ({ role: MessageRole, content: string }). MessageRole = user/assistant/system.
+  //   - `<CopilotChat onSubmitMessage>` exists but only yields the raw USER string
+  //     (no assistant turns), so `visibleMessages` is the better source for both sides.
+  // We diff `visibleMessages` against a ref of already-persisted ids and POST each new
+  // text message. Citations are not surfaced on the message object in 1.59, so we send
+  // none (the messages route defaults `citations` to []); the searchMeetings action's
+  // citations would need a custom render hook to capture, out of scope for this task.
+  const { visibleMessages } = useCopilotChat();
+  const persistedIds = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!conversationId) return;
+    for (const message of visibleMessages) {
+      if (!message.isTextMessage()) continue;
+      // Only persist completed messages with content, and only once.
+      if (!message.content || persistedIds.current.has(message.id)) continue;
+      persistedIds.current.add(message.id);
+      void fetch(`/api/conversations/${conversationId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: message.role,
+          content: message.content,
+          citations: [],
+        }),
+      }).catch(() => {
+        // Best-effort persistence: on failure, allow a future retry.
+        persistedIds.current.delete(message.id);
+      });
+    }
+  }, [visibleMessages, conversationId]);
+
   return (
     <CopilotChat
       // System prompt wiring (CopilotKit 1.59.5):
