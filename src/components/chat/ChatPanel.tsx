@@ -46,7 +46,14 @@ export function ChatPanel() {
     if (!conversationId) return;
     for (const message of visibleMessages) {
       if (!message.isTextMessage()) continue;
-      // Only persist completed messages with content, and only once.
+      // Persist only COMPLETED messages, never streaming partials. Each `Message`
+      // carries `status: MessageStatus` (= FailedMessageStatus | PendingMessageStatus
+      // | SuccessMessageStatus), whose `code` is the string-valued `MessageStatusCode`
+      // enum { Failed, Pending, Success } (verified in runtime-client-gql 1.59.5
+      // graphql.d.mts lines 282-287). A streaming assistant turn stays `Pending` until
+      // the final chunk lands, so gating on `Success` ensures we store the full content
+      // (not a truncated early chunk). The dedupe set still guards against duplicate POSTs.
+      if (message.status?.code !== "Success") continue;
       if (!message.content || persistedIds.current.has(message.id)) continue;
       persistedIds.current.add(message.id);
       void fetch(`/api/conversations/${conversationId}/messages`, {
