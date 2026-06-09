@@ -153,12 +153,20 @@ The retrieval layer is abstracted behind the `ContextStore` interface, so you ca
 
 2. **Validate it with the reusable contract suite** in `src/core/context-store/contract.ts`. Call `runContextStoreContract(makeStore)` from a Vitest file to assert the three behavioral guarantees (similarity ordering, clear-by-sourceId, upsert-replaces-by-id). See `src/core/context-store/memory-store.test.ts` for a working example using `InMemoryStore`.
 
-3. **Add it to the provider switch** in `src/core/context-store/factory.ts`. Today the factory is hardwired to `PgVectorStore`; the comment marks exactly where to branch on `appConfig.contextStore.provider`:
+3. **Add it to the provider switch** in `src/core/context-store/factory.ts`. The factory reads `appConfig.contextStore.provider` and branches on it; today only `"pgvector"` is wired (any other value throws). Add your `case`:
 
    ```ts
-   // provider switch: add "graphify" / "memory" here as adapters land.
-   return new PgVectorStore(embedder);
+   switch (appConfig.contextStore.provider) {
+     case "pgvector":
+       return new PgVectorStore(embedder);
+     // case "memory":
+     //   return new InMemoryStore(embedder);
+     default:
+       throw new Error(`Unsupported contextStore provider: "${appConfig.contextStore.provider}".`);
+   }
    ```
+
+   Then set `contextStore.provider` in `src/config/app.config.ts` to your new provider's name.
 
 ---
 
@@ -189,3 +197,14 @@ pnpm test
 Runs **Vitest** (17 tests): the Teams parser, chunking, the context stores (via the shared contract suite), the embedder, `searchMeetings`, and the `.docx` loader.
 
 `PgVectorStore`'s behavioral correctness is validated by the **same contract suite** (`runContextStoreContract`) run against a real Neon database in integration — the unit suite exercises the contract with the in-memory store, keeping `pnpm test` fast and DB-free.
+
+---
+
+## Known limitations & before you deploy
+
+This template is production-shaped but ships with deliberate gaps you should close before exposing it beyond localhost:
+
+- **No authentication on the API routes.** `POST /api/ingest` triggers a full re-embed (OpenAI spend + DB writes), and `POST /api/conversations` / `POST /api/conversations/[id]/messages` write to the DB — all unauthenticated. **Add auth (and rate limiting on `/api/ingest`) before deploying.** The `messages` route also does not whitelist `role` or cap `content` length; validate input if it's reachable by untrusted clients.
+- **Conversation history is write-only.** A fresh conversation is created on every chat mount and messages are persisted to it, but the UI does not yet load prior messages back on reload — so refreshing starts a new, empty chat. Wire `GET /api/conversations/[id]/messages` into `ChatPanel` to add resumption.
+- **Stored citations are empty.** Answers are cited live in the UI (via the `CitationCard` generative UI), but persisted messages store `citations: []` — CopilotKit 1.59 does not surface the `searchMeetings` result on the message object. Thread the action result through if you need citations in stored history.
+- **PgVectorStore has no live unit test.** Its behavior is covered by the contract suite, which requires a real Neon DB (run it in integration). The fast `pnpm test` suite uses the in-memory store.
