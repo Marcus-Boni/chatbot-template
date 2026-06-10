@@ -45,7 +45,7 @@ export function ChatPanel() {
 
   useEffect(() => {
     if (!conversationId) return;
-    for (const message of visibleMessages) {
+    for (const message of visibleMessages ?? []) {
       if (!message.isTextMessage()) continue;
       // Persist only COMPLETED messages, never streaming partials. Each `Message`
       // carries `status: MessageStatus` (= FailedMessageStatus | PendingMessageStatus

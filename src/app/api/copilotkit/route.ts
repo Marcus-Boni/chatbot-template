@@ -10,11 +10,11 @@ import { searchMeetings } from "@/core/rag/search-meetings";
 import { systemPrompt } from "@/core/rag/prompt";
 import { appConfig } from "@/config/app.config";
 
-export const POST = async (req: NextRequest) => {
-  // Instantiate lazily, on first request, NOT at module import time. Creating
-  // these at module scope forces `DATABASE_URL`/`OPENAI_API_KEY` to be present at
-  // BUILD time (the context store calls `neon(process.env.DATABASE_URL!)` via
-  // `@/db/client`), which breaks `next build` for a deployable template.
+// Build the Hono handler once per request (still lazy — no module-scope DB/OpenAI
+// access), then export both GET and POST so Next.js App Router passes ALL HTTP
+// methods to it. CopilotKit 1.59 makes GET /api/copilotkit/threads requests;
+// exporting only POST caused 404s and an infinite loading state in the chat UI.
+function makeHandler(req: NextRequest) {
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const serviceAdapter = new OpenAIAdapter({ openai, model: appConfig.llm.model });
   const store = createContextStore();
@@ -49,14 +49,10 @@ export const POST = async (req: NextRequest) => {
     runtime,
     serviceAdapter,
     endpoint: "/api/copilotkit",
-    // NOTE: `properties` is a generic request-context bag in runtime 1.59.5.
-    // `systemMessage` is NOT a documented wiring for the LLM system prompt here
-    // (it does not appear anywhere in the installed runtime type defs). The
-    // authoritative system prompt is `appConfig.systemPrompt`, which should be
-    // applied client-side via the `instructions`/`makeSystemMessage` prop on the
-    // CopilotKit chat component. We still forward it so it is available to
-    // actions/middleware and so the wiring point is explicit.
     properties: { systemMessage: systemPrompt() },
   });
   return handleRequest(req);
-};
+}
+
+export const GET = (req: NextRequest) => makeHandler(req);
+export const POST = (req: NextRequest) => makeHandler(req);

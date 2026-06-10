@@ -1,6 +1,7 @@
 "use client";
 
-import { useCopilotAction } from "@copilotkit/react-core";
+import { useRenderTool } from "@copilotkit/react-core/v2";
+import { z } from "zod";
 import { Loader2, Search, SearchX } from "lucide-react";
 import type { SearchResponse } from "@/core/rag/search-meetings";
 import { CitationCard } from "./CitationCard";
@@ -8,56 +9,21 @@ import { CitationCard } from "./CitationCard";
 /**
  * Generative-UI wiring for the backend `searchMeetings` RAG action.
  *
- * CopilotKit pattern (verified against the installed @copilotkit/react-core
- * 1.59.5 type defs):
+ * Uses `useRenderTool` from `@copilotkit/react-core/v2` — the correct v2 hook
+ * for attaching a render function to a backend tool call without re-declaring
+ * it as a frontend action.
  *
- *   declare function useCopilotAction<const T extends Parameter[] | [] = []>(
- *     action: FrontendAction<T> | CatchAllFrontendAction,
- *     dependencies?: any[],
- *   ): void;                                  // index.d.mts:341
- *
- *   type FrontendAction<T> = Action<T> & {
- *     ...
- *     available?: "disabled" | "enabled" | "remote" | "frontend";
- *     render?: string | ((props: ActionRenderProps<T>) => string | ReactElement);
- *     handler?: never;   // (when render-only — the union branch without a handler)
- *   };                                        // copilotkit-DqDT5RLa.d.mts:104-122
- *
- *   type ActionRenderProps<T> =
- *       { status: "inProgress"; args: Partial<...>; result: undefined }
- *     | { status: "executing";  args: ...;          result: undefined }
- *     | { status: "complete";   args: ...;          result: any };
- *                                              // copilotkit-DqDT5RLa.d.mts:15-92
- *
- * A FRONTEND action whose `name` matches a BACKEND action is the standard way to
- * render generative UI for that backend tool: we declare the same `name` +
- * `parameters`, omit `handler` (the backend keeps executing it), set
- * `available: "frontend"` so it is render-only, and supply `render`. The render
- * callback receives `{ status, args, result }`; on "complete", `result` is the
- * backend payload (typed `any` in the defs) — we narrow it to `SearchResponse`.
+ * IMPORTANT: in the v2 API, `result` inside the render callback is always a
+ * JSON string (RenderToolCompleteProps.result: string). We must JSON.parse it
+ * to recover the SearchResponse object returned by the backend handler.
  */
 export function SearchMeetingsRender() {
-  useCopilotAction({
+  useRenderTool({
     name: "searchMeetings",
-    // Render-only on the client; the backend `searchMeetings` handler (see
-    // src/app/api/copilotkit/route.ts) still does the actual retrieval.
-    available: "frontend",
-    description:
-      "Mostra as citações das reuniões usadas para fundamentar a resposta.",
-    parameters: [
-      {
-        name: "query",
-        type: "string",
-        description: "A pergunta ou termos de busca",
-        required: true,
-      },
-      {
-        name: "topK",
-        type: "number",
-        description: "Quantos trechos retornar",
-        required: false,
-      },
-    ],
+    parameters: z.object({
+      query: z.string(),
+      topK: z.number().optional(),
+    }),
     render: ({ status, result }) => {
       if (status === "inProgress" || status === "executing") {
         return (
@@ -68,8 +34,13 @@ export function SearchMeetingsRender() {
         );
       }
 
-      // status === "complete": result is the backend payload (typed `any`).
-      const payload = result as SearchResponse | undefined;
+      // status === "complete": result is a JSON string — parse it.
+      let payload: SearchResponse | undefined;
+      try {
+        payload = typeof result === "string" ? JSON.parse(result) : result;
+      } catch {
+        payload = undefined;
+      }
       const results = payload?.results ?? [];
 
       if (results.length === 0) {
