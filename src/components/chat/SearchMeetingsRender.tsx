@@ -7,15 +7,16 @@ import type { SearchResponse } from "@/core/rag/search-meetings";
 import { CitationCard } from "./CitationCard";
 
 /**
- * Generative-UI wiring for the backend `searchMeetings` RAG action.
+ * Generative-UI wiring for the backend `searchMeetings` tool.
  *
- * Uses `useRenderTool` from `@copilotkit/react-core/v2` — the correct v2 hook
- * for attaching a render function to a backend tool call without re-declaring
- * it as a frontend action.
+ * The backend is now a BuiltInAgent (AG-UI v2), so `useRenderTool` from
+ * `@copilotkit/react-core/v2` is the correct hook to use here — it renders
+ * the tool call lifecycle (inProgress → executing → complete) in the chat.
  *
- * IMPORTANT: in the v2 API, `result` inside the render callback is always a
- * JSON string (RenderToolCompleteProps.result: string). We must JSON.parse it
- * to recover the SearchResponse object returned by the backend handler.
+ * In the v2 API:
+ *  - `status` is one of: "inProgress" | "executing" | "complete"
+ *  - `result` (when status === "complete") is a JSON string
+ *  - `parameters` contains the tool call arguments
  */
 export function SearchMeetingsRender() {
   useRenderTool({

@@ -2,7 +2,7 @@ export const appConfig = {
   brand: { name: "Marca Ambiental", logo: "/logo.svg", accent: "#16a34a" },
   dataSource: { type: "teams-docx" as const, transcriptsDir: process.env.TRANSCRIPTS_DIR ?? "" },
   contextStore: { provider: "pgvector" as const },
-  llm: { model: "gpt-4.1-mini", embeddingModel: "text-embedding-3-small" },
+  llm: { model: "openai/gpt-4o-mini", embeddingModel: "text-embedding-3-small" },
   systemPrompt:
     "Você é o assistente da Marca Ambiental. Responda APENAS com base nos trechos de " +
     "reuniões recuperados pela ferramenta searchMeetings. SEMPRE cite a reunião e a data " +

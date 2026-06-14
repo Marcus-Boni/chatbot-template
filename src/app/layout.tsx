@@ -45,7 +45,7 @@ export default function RootLayout({
       <body className="min-h-full">
         <div className="app-aurora" aria-hidden />
         <div className="app-grain" aria-hidden />
-        <CopilotKit runtimeUrl="/api/copilotkit">
+        <CopilotKit runtimeUrl="/api/copilotkit" useSingleEndpoint={true}>
           <AppShell>{children}</AppShell>
         </CopilotKit>
       </body>
