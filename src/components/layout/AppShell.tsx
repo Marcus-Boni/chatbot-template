@@ -5,13 +5,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { gsap } from "gsap";
-import { MessageSquareText, Library, Menu, X } from "lucide-react";
+import { MessageSquareText, Library, Menu, X, History } from "lucide-react";
 import { appConfig } from "@/config/app.config";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/", label: "Chat", icon: MessageSquareText },
   { href: "/sources", label: "Fontes", icon: Library },
+  { href: "/conversations", label: "Histórico", icon: History },
 ] as const;
 
 function Brand() {

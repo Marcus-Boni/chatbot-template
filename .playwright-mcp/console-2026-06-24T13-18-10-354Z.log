@@ -1,0 +1,31 @@
+[     288ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[     418ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[     958ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[    1064ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/copilotkit/threads?agentId=default:0
+[    1084ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[    1107ms] [LOG] [Fast Refresh] done in 125ms @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[   13793ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/copilotkit/threads?agentId=default:0
+[   77447ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[   77605ms] [LOG] [Fast Refresh] done in 260ms @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[   95843ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[   95912ms] [LOG] [Fast Refresh] done in 168ms @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[   96015ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[   96069ms] [LOG] [Fast Refresh] done in 156ms @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  104578ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  104636ms] [LOG] [Fast Refresh] done in 161ms @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  104738ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  104813ms] [LOG] [Fast Refresh] done in 177ms @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  132838ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  133085ms] [LOG] [Fast Refresh] done in 317ms @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  133198ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  133437ms] [LOG] [Fast Refresh] done in 344ms @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  133566ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  134329ms] [LOG] [Fast Refresh] done in 867ms @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  134438ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  134471ms] [LOG] [Fast Refresh] done in 135ms @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  134744ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  134776ms] [LOG] [Fast Refresh] done in 133ms @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  134877ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  134879ms] [LOG] [Fast Refresh] done in 102ms @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  141922ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477
+[  141956ms] [LOG] [Fast Refresh] done in 141ms @ http://localhost:3000/_next/static/chunks/04ha_next_dist_1l7mvvz._.js:2477

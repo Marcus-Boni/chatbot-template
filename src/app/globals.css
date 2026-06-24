@@ -149,9 +149,14 @@ body {
   font-size: 0.9375rem;
   line-height: 1.65;
 }
-.copilotkit-surface .copilotKitUserMessage {
-  background: var(--accent-soft);
-  color: var(--fg);
+/* The v1 default `.copilotKitMessage.copilotKitUserMessage` (specificity 0,2,0)
+   ties our override and, being imported after globals.css, wins the cascade —
+   rendering a solid bright-green bubble with near-black text (poor contrast).
+   Match the same two classes under the surface to raise specificity (0,3,0) and
+   win. Use the app's accessible button pair (white on #15803d ≈ 5:1 contrast). */
+.copilotkit-surface .copilotKitMessage.copilotKitUserMessage {
+  background: var(--btn-bg);
+  color: var(--btn-fg);
   border: 1px solid var(--accent-line);
 }
 

@@ -1,80 +1,112 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useAgent } from "@copilotkit/react-core/v2";
 import { CopilotChat } from "@copilotkit/react-ui";
-import { useCopilotChat } from "@copilotkit/react-core";
 import { appConfig } from "@/config/app.config";
 import { SearchMeetingsRender } from "./SearchMeetingsRender";
 
+/** Roles we persist to the history. Tool/system/reasoning turns are skipped. */
+const PERSISTED_ROLES = new Set(["user", "assistant"]);
+
+/** Derive a human-readable conversation title from the first user message. */
+function deriveTitle(content: string): string {
+  const trimmed = content.trim().replace(/\s+/g, " ");
+  return trimmed.length > 80 ? `${trimmed.slice(0, 80)}…` : trimmed;
+}
+
+/**
+ * Persists the conversation to the database — wired against the CopilotKit v2
+ * runtime (the app uses `BuiltInAgent` + `@copilotkit/react-core/v2`).
+ *
+ * The legacy v1 `useCopilotChat().visibleMessages` is NOT fed by the v2 agent,
+ * so it stayed empty and nothing was ever stored. The v2 source of truth is the
+ * AG-UI agent (`useAgent()`): `agent.messages` holds the settled history and
+ * `onRunFinalized` fires once per completed turn with the final messages — the
+ * right moment to persist (no streaming partials, full assistant content).
+ *
+ * Identity is keyed on the agent's stable `threadId`, NOT on component state:
+ * the `<CopilotKit>` provider lives in the root layout, so the agent (and its
+ * thread + messages) survives navigation between pages, while `ChatPanel`
+ * unmounts/remounts. Using `threadId` as the conversation id — plus the agent's
+ * stable message ids — makes every write idempotent (the API upserts with
+ * ON CONFLICT DO NOTHING), so flipping between Chat and Histórico never spawns
+ * duplicate conversations. A reload mints a new threadId → a fresh conversation,
+ * and visiting the chat without sending anything writes nothing (Claude/ChatGPT
+ * behavior): the first write only happens on the first finalized turn.
+ */
+function useConversationPersistence() {
+  const { agent } = useAgent();
+  const ensuredThreads = useRef<Set<string>>(new Set());
+  const persistedMsgIds = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!agent) return;
+
+    const persist = async (
+      threadId: string,
+      messages: ReadonlyArray<{ id: string; role: string; content?: unknown }>,
+    ) => {
+      const pending = messages.filter(
+        (m) =>
+          PERSISTED_ROLES.has(m.role) &&
+          typeof m.content === "string" &&
+          m.content.trim().length > 0 &&
+          !persistedMsgIds.current.has(m.id),
+      );
+      if (pending.length === 0) return;
+
+      // Mark optimistically so an overlapping finalize doesn't double-POST.
+      for (const m of pending) persistedMsgIds.current.add(m.id);
+
+      try {
+        if (!ensuredThreads.current.has(threadId)) {
+          const firstUser = pending.find((m) => m.role === "user");
+          const title =
+            firstUser && typeof firstUser.content === "string"
+              ? deriveTitle(firstUser.content)
+              : undefined;
+          const res = await fetch("/api/conversations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: threadId, title }),
+          });
+          if (!res.ok) throw new Error("create conversation failed");
+          ensuredThreads.current.add(threadId);
+        }
+
+        for (const m of pending) {
+          const res = await fetch(`/api/conversations/${threadId}/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: m.id,
+              role: m.role,
+              content: m.content,
+              citations: [],
+            }),
+          });
+          if (!res.ok) throw new Error("persist failed");
+        }
+      } catch {
+        // Roll back optimistic marks so a later run retries these.
+        for (const m of pending) persistedMsgIds.current.delete(m.id);
+        ensuredThreads.current.delete(threadId);
+      }
+    };
+
+    const sub = agent.subscribe({
+      onRunFinalized: ({ messages }) => void persist(agent.threadId, messages),
+    });
+    return () => sub.unsubscribe();
+  }, [agent]);
+}
+
 export function ChatPanel() {
-  // Conversation persistence (Task 13).
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const created = useRef(false);
-
-  // Create a conversation once, on mount. The `created` ref guard makes this
-  // fire exactly once even under React Strict Mode's double-invoke in dev.
-  useEffect(() => {
-    if (created.current) return;
-    created.current = true;
-    void fetch("/api/conversations", { method: "POST" })
-      .then((r) => r.json())
-      .then((d: { id: string }) => setConversationId(d.id))
-      .catch(() => {
-        // Allow a retry on a later mount if creation failed.
-        created.current = false;
-      });
-  }, []);
-
-  // Message persistence wiring (verified against installed CopilotKit 1.59.5 type defs):
-  //   - `useCopilotChat()` (the open-source-friendly headless hook) returns
-  //     `UseCopilotChatReturn`, which is `Omit<..., "messages" | "sendMessage" | ...>`.
-  //     Crucially `visibleMessages: Message$1[]` is NOT omitted, so it is the
-  //     observable array we can read here without a publicApiKey
-  //     (`@copilotkit/react-core/dist/index.d.mts` lines 153 + 303).
-  //   - Each `Message` (`@copilotkit/runtime-client-gql` client/types.d.mts) has
-  //     `id` + a `isTextMessage()` type guard narrowing to `TextMessage`
-  //     ({ role: MessageRole, content: string }). MessageRole = user/assistant/system.
-  //   - `<CopilotChat onSubmitMessage>` exists but only yields the raw USER string
-  //     (no assistant turns), so `visibleMessages` is the better source for both sides.
-  // We diff `visibleMessages` against a ref of already-persisted ids and POST each new
-  // text message. Citations are not surfaced on the message object in 1.59, so we send
-  // none (the messages route defaults `citations` to []); the searchMeetings action's
-  // citations would need a custom render hook to capture, out of scope for this task.
-  const { visibleMessages } = useCopilotChat();
-  const persistedIds = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (!conversationId) return;
-    for (const message of visibleMessages ?? []) {
-      if (!message.isTextMessage()) continue;
-      // Persist only COMPLETED messages, never streaming partials. Each `Message`
-      // carries `status: MessageStatus` (= FailedMessageStatus | PendingMessageStatus
-      // | SuccessMessageStatus), whose `code` is the string-valued `MessageStatusCode`
-      // enum { Failed, Pending, Success } (verified in runtime-client-gql 1.59.5
-      // graphql.d.mts lines 282-287). A streaming assistant turn stays `Pending` until
-      // the final chunk lands, so gating on `Success` ensures we store the full content
-      // (not a truncated early chunk). The dedupe set still guards against duplicate POSTs.
-      if (message.status?.code !== "Success") continue;
-      if (!message.content || persistedIds.current.has(message.id)) continue;
-      persistedIds.current.add(message.id);
-      void fetch(`/api/conversations/${conversationId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role: message.role,
-          content: message.content,
-          citations: [],
-        }),
-      }).catch(() => {
-        // Best-effort persistence: on failure, allow a future retry.
-        persistedIds.current.delete(message.id);
-      });
-    }
-  }, [visibleMessages, conversationId]);
+  useConversationPersistence();
 
   return (
     <div className="flex h-full flex-col">
-      {/* Pane header */}
       <header className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4 sm:px-7">
         <div>
           <h1 className="font-[family-name:var(--font-display)] text-lg font-semibold tracking-tight text-[var(--fg)]">
@@ -92,37 +124,20 @@ export function ChatPanel() {
         </span>
       </header>
 
-      {/* Generative-UI: renders CitationCards under assistant turns when the
-          backend searchMeetings action runs. Renders nothing itself. */}
       <SearchMeetingsRender />
 
-      {/* CopilotKit chat surface, skinned to the dark console via the
-          .copilotkit-surface CSS-variable theme in globals.css. */}
       <div className="copilotkit-surface mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-3 sm:px-5">
         <CopilotChat
-      // System prompt wiring (CopilotKit 1.59.5):
-      // The authoritative grounding/citation prompt lives in appConfig.systemPrompt and
-      // MUST be applied client-side — the backend route's properties.systemMessage is a
-      // generic context bag in 1.59 and does NOT reliably set the LLM system prompt.
-      // CopilotChatProps.instructions (verified in node_modules @copilotkit/react-ui
-      // 1.59.5 index.d.mts: "Custom instructions to be added to the system message...
-      // influencing its responses") is the supported mechanism for this. It augments
-      // CopilotKit's default system message, which is sufficient here (no need for the
-      // heavier makeSystemMessage override).
-      instructions={appConfig.systemPrompt}
-      // Static suggestion pills (CopilotKit 1.59.5): `suggestions` accepts
-      // `Omit<Suggestion, "isLoading">[]` (verified in @copilotkit/core 1.59.5
-      // index.d.mts: `{ title, message }`). Passing a static array shows fixed
-      // prompts without AI generation, grounding the user's first question.
-      suggestions={appConfig.suggestedQuestions.map((q) => ({
-        title: q,
-        message: q,
-      }))}
-      labels={{
-        title: appConfig.brand.name,
-        initial: "Pergunte sobre as reuniões da " + appConfig.brand.name + ".",
-      }}
-        className="h-full"
+          instructions={appConfig.systemPrompt}
+          suggestions={appConfig.suggestedQuestions.map((q) => ({
+            title: q,
+            message: q,
+          }))}
+          labels={{
+            title: appConfig.brand.name,
+            initial: `Pergunte sobre as reuniões da ${appConfig.brand.name}.`,
+          }}
+          className="h-full"
         />
       </div>
     </div>
