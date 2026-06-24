@@ -1,0 +1,7 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Marca Ambiental">
+  <rect width="64" height="64" rx="18" fill="#07100a"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="16.5" stroke="#16a34a" stroke-opacity="0.42" stroke-width="3"/>
+  <path d="M32 48C32 48 16 41 16 27C16 21 20 16 26 16C29.2 16 31.2 17.8 32 19.4C32.8 17.8 34.8 16 38 16C44 16 48 21 48 27C48 41 32 48 32 48Z" fill="#16a34a"/>
+  <path d="M32 48V26" stroke="#07100a" stroke-width="3" stroke-linecap="round"/>
+  <path d="M32 33L26 28M32 37L38 31" stroke="#07100a" stroke-width="2.6" stroke-linecap="round"/>
+</svg>

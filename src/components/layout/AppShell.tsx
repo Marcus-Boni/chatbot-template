@@ -28,10 +28,23 @@ const NAV = [
   { href: "/conversations", label: "Histórico", icon: History },
 ] as const;
 
+const sidebarItemClass =
+  "group relative flex min-h-11 items-center gap-3 rounded-xl border border-transparent text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-elevated)]";
+
+const sidebarIconButtonClass =
+  "inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-transparent transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-elevated)]";
+
 function Brand({ collapsed }: { collapsed?: boolean }) {
   return (
-    <Link href="/" className={cn("group flex items-center justify-center transition-all duration-300", collapsed ? "size-10 mx-auto" : "gap-2.5")}>
-      <span className="relative inline-flex h-9 w-9 items-center justify-center shrink-0">
+    <Link
+      href="/"
+      aria-label="Ir para o chat inicial"
+      className={cn(
+        "group flex items-center justify-center rounded-xl transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-elevated)]",
+        collapsed ? "mx-auto size-11" : "gap-3",
+      )}
+    >
+      <span className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--accent-line)] bg-[var(--accent-soft)] shadow-[0_0_24px_rgba(34,197,94,0.08)]">
         <Image
           src={appConfig.brand.logo}
           alt={appConfig.brand.name}
@@ -43,10 +56,10 @@ function Brand({ collapsed }: { collapsed?: boolean }) {
       </span>
       {!collapsed && (
         <span className="flex flex-col leading-none transition-opacity duration-200">
-          <span className="font-[family-name:var(--font-display)] text-[0.95rem] font-semibold tracking-tight text-[var(--fg)]">
+          <span className="font-[family-name:var(--font-display)] text-base font-semibold tracking-tight text-[var(--fg)]">
             {appConfig.brand.name}
           </span>
-          <span className="mt-0.5 font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--fg-subtle)]">
+          <span className="mt-1 font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[var(--fg-subtle)]">
             Meeting Copilot
           </span>
         </span>
@@ -68,15 +81,15 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate?: () => void; collapse
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-200",
-              collapsed ? "justify-center px-0 size-10 mx-auto" : "",
+              sidebarItemClass,
+              collapsed ? "mx-auto size-11 justify-center px-0" : "px-3",
               active
-                ? "bg-[var(--accent-soft)] text-[var(--fg)]"
-                : "text-[var(--fg-muted)] hover:bg-white/[0.03] hover:text-[var(--fg)]",
+                ? "border-[var(--accent-line)] bg-[var(--accent-soft)] text-[var(--fg)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                : "text-[var(--fg-muted)] hover:border-white/[0.06] hover:bg-white/[0.04] hover:text-[var(--fg)]",
             )}
           >
             {active && !collapsed && (
-              <span className="absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-full bg-[var(--accent-bright)]" />
+              <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-[var(--accent-bright)] shadow-[0_0_12px_rgba(34,197,94,0.35)]" />
             )}
             <Icon
               className={cn(
@@ -158,13 +171,18 @@ function SidebarConversationItem({
   return (
     <div
       className={cn(
-        "group relative flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-200",
+        "group relative flex min-h-9 items-center gap-2 rounded-xl border px-2.5 text-xs font-medium transition-all duration-200",
         active
-          ? "bg-[var(--accent-soft)] text-[var(--fg)] border-l-2 border-[var(--accent-bright)] pl-2"
-          : "text-[var(--fg-muted)] hover:bg-white/[0.03] hover:text-[var(--fg)]"
+          ? "border-[var(--accent-line)] bg-[var(--accent-soft)] text-[var(--fg)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+          : "border-transparent text-[var(--fg-muted)] hover:border-white/[0.06] hover:bg-white/[0.04] hover:text-[var(--fg)]"
       )}
     >
-      <MessageSquare className="h-3.5 w-3.5 shrink-0 text-[var(--fg-subtle)]" />
+      <MessageSquare
+        className={cn(
+          "h-3.5 w-3.5 shrink-0 transition-colors",
+          active ? "text-[var(--accent-bright)]" : "text-[var(--fg-subtle)] group-hover:text-[var(--fg-muted)]",
+        )}
+      />
       
       {isEditing ? (
         <input
@@ -174,7 +192,7 @@ function SidebarConversationItem({
           onChange={(e) => setEditTitle(e.target.value)}
           onBlur={handleRename}
           onKeyDown={handleKeyDown}
-          className="w-full bg-transparent text-[var(--fg)] outline-none border-b border-[var(--accent-bright)] py-0.5"
+          className="w-full border-b border-[var(--accent-bright)] bg-transparent py-0.5 text-[var(--fg)] outline-none"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -183,7 +201,8 @@ function SidebarConversationItem({
       ) : (
         <button
           onClick={() => router.push(`/c/${conv.id}`)}
-          className="flex-1 text-left truncate pr-10 focus:outline-none"
+          className="min-w-0 flex-1 truncate pr-11 text-left leading-5 focus:outline-none"
+          title={conv.title}
         >
           {conv.title}
         </button>
@@ -191,12 +210,13 @@ function SidebarConversationItem({
 
       {/* Action buttons */}
       {!isEditing && (
-        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-l from-[var(--bg-elevated)] via-[var(--bg-elevated)] to-transparent pl-3 py-1">
+        <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-0.5 bg-gradient-to-l from-[var(--bg-elevated)] via-[var(--bg-elevated)] to-transparent py-1 pl-3 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
           {confirmDelete ? (
             <>
               <button
                 onClick={handleDelete}
-                className="p-1 hover:text-red-400 text-red-500/70 transition-colors"
+                aria-label="Confirmar exclusão da conversa"
+                className="rounded-md p-1 text-red-500/80 transition-colors hover:bg-red-500/10 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/35"
                 title="Confirmar"
               >
                 <Check className="h-3 w-3" />
@@ -207,7 +227,8 @@ function SidebarConversationItem({
                   e.stopPropagation();
                   setConfirmDelete(false);
                 }}
-                className="p-1 hover:text-[var(--fg)] text-[var(--fg-muted)] transition-colors"
+                aria-label="Cancelar exclusão da conversa"
+                className="rounded-md p-1 text-[var(--fg-muted)] transition-colors hover:bg-white/[0.05] hover:text-[var(--fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)]"
                 title="Cancelar"
               >
                 <X className="h-3 w-3" />
@@ -221,7 +242,8 @@ function SidebarConversationItem({
                   e.stopPropagation();
                   setIsEditing(true);
                 }}
-                className="p-1 hover:text-[var(--fg)] text-[var(--fg-muted)] transition-colors"
+                aria-label="Renomear conversa"
+                className="rounded-md p-1 text-[var(--fg-muted)] transition-colors hover:bg-white/[0.05] hover:text-[var(--fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)]"
                 title="Renomear"
               >
                 <Edit2 className="h-3 w-3" />
@@ -232,7 +254,8 @@ function SidebarConversationItem({
                   e.stopPropagation();
                   setConfirmDelete(true);
                 }}
-                className="p-1 hover:text-red-400 text-[var(--fg-subtle)] transition-colors"
+                aria-label="Excluir conversa"
+                className="rounded-md p-1 text-[var(--fg-subtle)] transition-colors hover:bg-red-500/10 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/35"
                 title="Excluir"
               >
                 <Trash2 className="h-3 w-3" />
@@ -325,16 +348,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div
         data-anim="brand"
         className={cn(
-          "py-5 flex items-center transition-all duration-300",
-          isSidebarCollapsed ? "justify-center px-0" : "justify-between px-4"
+          "flex items-center transition-all duration-300",
+          isSidebarCollapsed ? "justify-center px-0 py-5" : "justify-between px-5 py-5"
         )}
       >
         <Brand collapsed={isSidebarCollapsed} />
         {!isSidebarCollapsed && (
           <Tooltip content="Recolher barra lateral" side="right">
             <button
+              type="button"
               onClick={() => setIsSidebarCollapsed(true)}
-              className="hidden md:flex p-1 rounded-md text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-white/[0.04] transition-colors cursor-pointer"
+              aria-label="Recolher barra lateral"
+              className="hidden size-9 items-center justify-center rounded-lg text-[var(--fg-muted)] transition-colors hover:bg-white/[0.05] hover:text-[var(--fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)] md:flex"
             >
               <PanelLeftClose className="h-4 w-4" />
             </button>
@@ -342,29 +367,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </div>
       
-      <div data-anim="rule" className="mx-4 h-px bg-[var(--line)]" />
+      <div data-anim="rule" className="mx-5 h-px bg-[var(--line)]" />
       
       {/* Action Button: New Chat */}
-      <div className={cn("py-3 transition-all duration-300", isSidebarCollapsed ? "px-0" : "px-3")}>
+      <div className={cn("transition-all duration-300", isSidebarCollapsed ? "flex justify-center px-0 py-4" : "px-4 py-4")}>
         {isSidebarCollapsed ? (
           <Tooltip content="Nova conversa" side="right">
             <button
+              type="button"
               onClick={() => {
                 router.push("/");
                 if (collapse) collapse();
               }}
-              className="flex items-center justify-center size-10 rounded-lg border border-dashed border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/40 text-emerald-400 transition-all duration-200 shadow-md hover:shadow-emerald-500/5 cursor-pointer mx-auto"
+              aria-label="Nova conversa"
+              className={cn(
+                sidebarIconButtonClass,
+                "border-dashed border-[var(--accent-line)] bg-[var(--accent-soft)] text-[var(--accent-bright)] shadow-[0_0_22px_rgba(34,197,94,0.08)] hover:border-emerald-400/50 hover:bg-emerald-500/18 hover:text-emerald-200",
+              )}
             >
               <Plus className="h-4.5 w-4.5" />
             </button>
           </Tooltip>
         ) : (
           <button
+            type="button"
             onClick={() => {
               router.push("/");
               if (collapse) collapse();
             }}
-            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg border border-dashed border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/40 text-xs font-semibold tracking-wide text-emerald-400 hover:text-emerald-300 transition-all duration-200 shadow-md hover:shadow-emerald-500/5 cursor-pointer"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--accent-line)] bg-[var(--accent-soft)] px-4 text-sm font-semibold text-[var(--accent-bright)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_22px_rgba(34,197,94,0.06)] transition-all duration-200 hover:border-emerald-400/50 hover:bg-emerald-500/18 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-elevated)]"
           >
             <Plus className="h-4 w-4" />
             Nova conversa
@@ -373,41 +404,62 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Scrollable Recent Conversations */}
-      <div className={cn("flex-1 overflow-y-auto mb-4 scrollbar-thin", isSidebarCollapsed ? "px-0 flex flex-col items-center gap-2" : "px-2")}>
+      <div
+        className={cn(
+          "sidebar-scroll mb-4 flex-1 overflow-y-auto",
+          isSidebarCollapsed ? "flex flex-col items-center gap-2 px-0" : "px-3",
+        )}
+      >
         {loading ? (
-          <div className="space-y-2 px-2 mt-4 w-full flex flex-col items-center">
+          <div className="mt-2 flex w-full flex-col items-center space-y-2 px-2">
             {[1, 2, 3].map((n) => (
-              <div key={n} className="h-7 w-10 bg-white/[0.02] animate-pulse rounded-md" />
+              <div key={n} className="h-9 w-full animate-pulse rounded-xl bg-white/[0.035]" />
             ))}
           </div>
         ) : conversations.length === 0 ? (
           !isSidebarCollapsed ? (
-            <div className="text-center py-8 text-[var(--fg-subtle)] text-xs">
+            <div className="rounded-xl border border-dashed border-white/[0.08] px-3 py-8 text-center text-xs text-[var(--fg-subtle)]">
               Nenhuma conversa recente
             </div>
           ) : null
         ) : (
-          <div className={cn("space-y-4", isSidebarCollapsed ? "w-full flex flex-col items-center" : "")}>
-            {grouped.map(([groupName, items]) => (
-              <div key={groupName} className={cn("space-y-1", isSidebarCollapsed ? "w-full flex flex-col items-center" : "")}>
-                {!isSidebarCollapsed && (
-                  <h4 className="text-[0.62rem] font-mono tracking-[0.1em] text-[var(--fg-subtle)] px-2.5 uppercase select-none">
-                    {groupName}
-                  </h4>
+          <div className={cn("space-y-5", isSidebarCollapsed ? "flex w-full flex-col items-center" : "")}>
+            {grouped.map(([groupName, items], groupIndex) => (
+              <div
+                key={groupName}
+                className={cn(
+                  isSidebarCollapsed ? "flex w-full flex-col items-center" : "space-y-2",
+                  groupIndex > 0 && (isSidebarCollapsed ? "pt-3" : "pt-1"),
                 )}
-                <div className={cn("space-y-0.5", isSidebarCollapsed ? "w-full flex flex-col items-center gap-1.5" : "")}>
+              >
+                {isSidebarCollapsed ? (
+                  groupIndex > 0 ? (
+                    <div className="mb-3 mt-1 h-px w-11 bg-[var(--line)]" aria-hidden />
+                  ) : null
+                ) : (
+                  <div className="flex items-center gap-2 px-2">
+                    <h4 className="shrink-0 select-none font-mono text-[0.64rem] uppercase tracking-[0.16em] text-[var(--fg-subtle)]">
+                      {groupName}
+                    </h4>
+                    <span className="h-px min-w-0 flex-1 bg-[var(--line)]" aria-hidden />
+                  </div>
+                )}
+                <div className={cn("space-y-1", isSidebarCollapsed ? "flex w-full flex-col items-center gap-1.5" : "")}>
                   {items.map((c) => {
                     const active = pathname === `/c/${c.id}`;
                     if (isSidebarCollapsed) {
                       return (
                         <Tooltip key={c.id} content={c.title} side="right">
                           <button
+                            type="button"
                             onClick={() => router.push(`/c/${c.id}`)}
+                            aria-label={`Abrir conversa ${c.title}`}
                             className={cn(
-                              "flex items-center justify-center size-10 rounded-lg mx-auto transition-all duration-200 cursor-pointer relative",
+                              sidebarIconButtonClass,
+                              "relative mx-auto",
                               active
-                                ? "bg-[var(--accent-soft)] text-[var(--accent-bright)]"
-                                : "text-[var(--fg-muted)] hover:bg-white/[0.03] hover:text-[var(--fg)]"
+                                ? "border-[var(--accent-line)] bg-[var(--accent-soft)] text-[var(--accent-bright)]"
+                                : "text-[var(--fg-muted)] hover:border-white/[0.06] hover:bg-white/[0.04] hover:text-[var(--fg)]"
                             )}
                           >
                             <MessageSquare className="h-4 w-4" />
@@ -430,23 +482,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </div>
 
-      <div data-anim="rule" className="mx-4 h-px bg-[var(--line)]" />
+      <div data-anim="rule" className="mx-5 h-px bg-[var(--line)]" />
 
       {/* Navigation */}
-      <div data-anim="nav" className="px-3 py-3">
+      <div data-anim="nav" className="px-4 py-4">
         <NavLinks onNavigate={collapse} collapsed={isSidebarCollapsed} />
       </div>
 
       {/* Info Box */}
-      <div className={cn("px-4 py-4 transition-all duration-300", isSidebarCollapsed ? "px-0" : "px-4")}>
+      <div className={cn("pb-4 transition-all duration-300", isSidebarCollapsed ? "px-0" : "px-4")}>
         {isSidebarCollapsed ? (
           <Tooltip content="RAG · pgvector ativo" side="right">
-            <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-[var(--panel)] border border-[var(--line)]">
+            <div className="mx-auto flex size-11 items-center justify-center rounded-xl border border-[var(--line)] bg-[var(--panel)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--accent-bright)]" />
             </div>
           </Tooltip>
         ) : (
-          <div className="hairline rounded-xl bg-[var(--panel)] p-3.5">
+          <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)]/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <p className="text-xs leading-relaxed text-[var(--fg-muted)]">
               Respostas fundamentadas nas transcrições — sempre com a reunião e a
               data citadas.
@@ -463,11 +515,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Expand Button at the bottom when collapsed */}
       {isSidebarCollapsed && (
-        <div className="py-2 flex justify-center border-t border-[var(--line)] mt-2">
+        <div className="mt-2 flex justify-center border-t border-[var(--line)] py-3">
           <Tooltip content="Expandir barra lateral" side="right">
             <button
+              type="button"
               onClick={() => setIsSidebarCollapsed(false)}
-              className="p-2 rounded-lg text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-white/[0.04] transition-colors cursor-pointer flex items-center justify-center"
+              aria-label="Expandir barra lateral"
+              className={cn(
+                sidebarIconButtonClass,
+                "text-[var(--fg-muted)] hover:border-white/[0.06] hover:bg-white/[0.04] hover:text-[var(--fg)]",
+              )}
             >
               <PanelLeft className="h-4.5 w-4.5" />
             </button>
@@ -482,11 +539,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "hidden md:block shrink-0 border-r border-[var(--line)] bg-[var(--bg-elevated)]/70 backdrop-blur-xl transition-all duration-300 ease-in-out overflow-hidden relative",
-          isSidebarCollapsed ? "w-16" : "w-64"
+          "relative hidden shrink-0 overflow-hidden border-r border-[var(--line)] bg-[linear-gradient(180deg,rgba(12,16,17,0.96),rgba(7,9,10,0.98))] shadow-[1px_0_0_rgba(255,255,255,0.03),18px_0_48px_rgba(0,0,0,0.28)] backdrop-blur-xl transition-all duration-300 ease-in-out md:block",
+          isSidebarCollapsed ? "w-[5.25rem]" : "w-80"
         )}
       >
-        <div className={cn("h-full flex flex-col transition-all duration-300", isSidebarCollapsed ? "w-16" : "w-64")}>
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(18rem_12rem_at_20%_0%,rgba(34,197,94,0.10),transparent_65%)]"
+          aria-hidden
+        />
+        <div className={cn("relative h-full flex flex-col transition-all duration-300", isSidebarCollapsed ? "w-[5.25rem]" : "w-80")}>
           {sidebarBody()}
         </div>
       </aside>
@@ -512,7 +573,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onClick={() => setMobileOpen(false)}
             aria-hidden
           />
-          <aside className="fixed inset-y-0 left-0 z-40 w-72 max-w-[80vw] border-r border-[var(--line)] bg-[var(--bg-elevated)] md:hidden">
+          <aside className="fixed inset-y-0 left-0 z-40 w-80 max-w-[86vw] border-r border-[var(--line)] bg-[var(--bg-elevated)] shadow-2xl md:hidden">
             {sidebarBody(() => setMobileOpen(false))}
           </aside>
         </>

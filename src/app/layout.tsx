@@ -8,7 +8,6 @@ import { appConfig } from "@/config/app.config";
 import { AppShell } from "@/components/layout/AppShell";
 import { ConversationsProvider } from "@/components/conversations/ConversationsContext";
 
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -19,7 +18,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Distinctive display face — characterful, editorial grotesque used for the
+// Distinctive display face: characterful, editorial grotesque used for the
 // brand wordmark and headings (deliberately not Inter/Roboto/system).
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
@@ -33,6 +32,13 @@ export const metadata: Metadata = {
     "Copilot de reuniões da " +
     appConfig.brand.name +
     ": pergunte em linguagem natural e receba respostas fundamentadas nas transcrições, sempre com a reunião e a data citadas.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({
