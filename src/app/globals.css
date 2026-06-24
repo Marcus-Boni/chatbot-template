@@ -26,6 +26,12 @@
   --accent-soft: rgba(22, 163, 74, 0.14);
   --accent-line: rgba(22, 163, 74, 0.32);
 
+  /* Primary buttons — a deeper emerald so white label text clears WCAG AA
+     (white on #15803d ≈ 5:1; white on the brighter --accent would fail). */
+  --btn-bg: #15803d;
+  --btn-bg-hover: #166534;
+  --btn-fg: #ffffff;
+
   --radius: 0.75rem;
 }
 
@@ -147,6 +153,51 @@ body {
   background: var(--accent-soft);
   color: var(--fg);
   border: 1px solid var(--accent-line);
+}
+
+/* ============================================================
+   Sonner toasts — mapped to the dark emerald palette
+   ============================================================ */
+[data-sonner-toaster][data-sonner-theme='dark'] {
+  --normal-bg: #0c1011;
+  --normal-bg-hover: #11171a;
+  --normal-border: rgba(255, 255, 255, 0.12);
+  --normal-border-hover: rgba(255, 255, 255, 0.18);
+  --normal-text: #e8edeb;
+
+  --success-bg: rgba(22, 163, 74, 0.12);
+  --success-border: rgba(22, 163, 74, 0.32);
+  --success-text: #22c55e;
+
+  --error-bg: rgba(239, 68, 68, 0.10);
+  --error-border: rgba(239, 68, 68, 0.24);
+  --error-text: #fca5a5;
+
+  --warning-bg: rgba(234, 179, 8, 0.10);
+  --warning-border: rgba(234, 179, 8, 0.24);
+  --warning-text: #fde047;
+
+  --info-bg: rgba(59, 130, 246, 0.10);
+  --info-border: rgba(59, 130, 246, 0.24);
+  --info-text: #93c5fd;
+}
+
+[data-sonner-toast] {
+  border-radius: var(--radius) !important;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+}
+
+[data-sonner-toast] [data-close-button] {
+  color: var(--fg-muted) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  background: var(--panel-2) !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+  color: var(--fg) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
 }
 
 /* ============================================================

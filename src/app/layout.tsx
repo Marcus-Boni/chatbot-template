@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import "@copilotkit/react-ui/styles.css";
 import { CopilotKit } from "@copilotkit/react-core";
+import { Toaster } from "sonner";
 import { appConfig } from "@/config/app.config";
 import { AppShell } from "@/components/layout/AppShell";
 
@@ -48,6 +49,15 @@ export default function RootLayout({
         <CopilotKit runtimeUrl="/api/copilotkit" useSingleEndpoint={true}>
           <AppShell>{children}</AppShell>
         </CopilotKit>
+        <Toaster
+          theme="dark"
+          position="bottom-right"
+          richColors
+          closeButton
+          duration={4000}
+          gap={8}
+          offset={20}
+        />
       </body>
     </html>
   );
