@@ -25,11 +25,13 @@ Windows + PowerShell + **pnpm**. Node 20+. Env vars (`.env`): `OPENAI_API_KEY`, 
 
 ## Architecture
 
-Request flow: **CopilotKit chat UI** → `POST /api/copilotkit` (v2 runtime + `BuiltInAgent`) → agent calls the **`searchMeetings`** tool → tool queries a **`ContextStore`** (`PgVectorStore` on Neon) → model answers grounded in retrieved excerpts → **`CitationCard`** generative UI renders the citations.
+Request flow: **CopilotKit chat UI** → `POST /api/copilotkit` (v2 runtime + `BuiltInAgent`) → agent calls the **`searchMeetings`** tool (and **`listMeetings`** for temporal/overview questions) → tools query a **`ContextStore`** (`PgVectorStore` on Neon) / the `documents` table → model answers grounded in retrieved excerpts → **`CitationCard`** generative UI renders the citations.
 
 ```
 src/
-├── config/app.config.ts          # SINGLE source of truth: brand, llm models, systemPrompt, suggestedQuestions
+├── config/
+│   ├── app.config.ts             # SINGLE source of truth: brand, llm params, retrieval tuning, suggestedQuestions
+│   └── system-prompt.ts          # buildSystemPrompt(brandName) — pure builder composed into appConfig.systemPrompt
 ├── app/
 │   ├── (chat)/page.tsx           # "/" route (route group); sources/page.tsx = "/sources"
 │   ├── api/copilotkit/route.ts   # CopilotKit V2 runtime (see gotchas)
@@ -39,7 +41,7 @@ src/
 │   ├── context-store/            # ContextStore abstraction (types, memory, pgvector, factory, contract)
 │   ├── loaders/                  # Loader abstraction: teams-parser (pure) + teams-docx-loader (mammoth I/O)
 │   ├── ingestion/                # chunk (transcript-aware) → embed (OpenAI) → pipeline
-│   └── rag/                      # search-meetings (tool handler) + prompt
+│   └── rag/                      # search-meetings (semantic, dedup+score floor) + list-meetings (date-ordered) + prompt
 ├── db/                           # drizzle schema, neon client, migrations
 └── components/                   # chat/ (ChatPanel, CitationCard, SearchMeetingsRender), layout/AppShell, sources/
 ```

@@ -27,4 +27,18 @@ describe("searchMeetings", () => {
     const res = await searchMeetings(store, { query: "boleto", topK: 3 });
     expect(res.results).toHaveLength(0);
   });
+
+  it("collapses duplicate excerpts to a single result", async () => {
+    const store = new InMemoryStore(fakeEmbedder);
+    const src = {
+      meetingTitle: "Reunião A", date: "2026-06-03T12:03:09.000Z", path: "/a.docx",
+      chunkIndex: 0, speakers: ["Bruno"], startTime: "7:38", endTime: "8:00",
+    };
+    await store.upsert([
+      { id: "1", sourceId: "s1", text: "fluxo do transportador definido", source: { ...src, chunkIndex: 0 } },
+      { id: "2", sourceId: "s1", text: "fluxo do transportador definido", source: { ...src, chunkIndex: 1 } },
+    ]);
+    const res = await searchMeetings(store, { query: "transportador", topK: 5 });
+    expect(res.results).toHaveLength(1);
+  });
 });

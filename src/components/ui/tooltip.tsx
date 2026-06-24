@@ -79,6 +79,13 @@ export function Tooltip({
     setOpen(false);
   };
 
+  const childProps = (children as React.ReactElement<{
+    onMouseEnter?: (e: React.MouseEvent) => void;
+    onMouseLeave?: (e: React.MouseEvent) => void;
+    onFocus?: (e: React.FocusEvent) => void;
+    onBlur?: (e: React.FocusEvent) => void;
+  }>).props;
+
   const trigger = React.cloneElement(children as React.ReactElement<{
     ref?: React.Ref<HTMLElement>;
     onMouseEnter?: (e: React.MouseEvent) => void;
@@ -101,19 +108,19 @@ export function Tooltip({
     },
     onMouseEnter: (e: React.MouseEvent) => {
       handleMouseEnter();
-      if (children.props.onMouseEnter) children.props.onMouseEnter(e);
+      if (childProps.onMouseEnter) childProps.onMouseEnter(e);
     },
     onMouseLeave: (e: React.MouseEvent) => {
       handleMouseLeave();
-      if (children.props.onMouseLeave) children.props.onMouseLeave(e);
+      if (childProps.onMouseLeave) childProps.onMouseLeave(e);
     },
     onFocus: (e: React.FocusEvent) => {
       handleMouseEnter();
-      if (children.props.onFocus) children.props.onFocus(e);
+      if (childProps.onFocus) childProps.onFocus(e);
     },
     onBlur: (e: React.FocusEvent) => {
       handleMouseLeave();
-      if (children.props.onBlur) children.props.onBlur(e);
+      if (childProps.onBlur) childProps.onBlur(e);
     },
   });
 

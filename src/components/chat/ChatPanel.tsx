@@ -12,6 +12,7 @@ import {
 import { PanelLeft } from "lucide-react";
 import { useConversations } from "@/components/conversations/ConversationsContext";
 import { Tooltip } from "@/components/ui/tooltip";
+import { CustomAssistantMessage } from "./CustomAssistantMessage";
 
 
 
@@ -199,6 +200,7 @@ export function ChatPanel({
               ? "Continue a conversa a partir do ponto anterior."
               : `Pergunte sobre as reuniões da ${appConfig.brand.name}.`,
           }}
+          AssistantMessage={CustomAssistantMessage}
           className="h-full"
         />
       </div>
