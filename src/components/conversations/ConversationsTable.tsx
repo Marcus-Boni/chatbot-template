@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
-import { MessageSquare, Trash2, Eye, Inbox } from "lucide-react";
-import { toast } from "sonner";
+import { MessageSquare, Trash2, Eye, Inbox, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConversationDetailModal } from "./ConversationDetailModal";
+import { useConversations, type Conversation } from "./ConversationsContext";
+import { Tooltip } from "@/components/ui/tooltip";
+
 
 export interface ConversationRow {
   id: string;
@@ -27,49 +30,26 @@ function formatDate(iso: string): string {
 }
 
 export function ConversationsTable() {
-  const [conversations, setConversations] = useState<ConversationRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<ConversationRow | null>(null);
+  const router = useRouter();
+  const { conversations, loading, deleteConversation } = useConversations();
+  const [selected, setSelected] = useState<Conversation | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const reduce = useReducedMotion();
 
-  const load = async () => {
-    const res = await fetch("/api/conversations");
-    if (!res.ok) throw new Error("Falha ao carregar conversas.");
-    const data = (await res.json()) as { conversations: ConversationRow[] };
-    setConversations(data.conversations);
-  };
-
-  useEffect(() => {
-    void (async () => {
-      try {
-        await load();
-      } catch {
-        toast.error("Não foi possível carregar o histórico.", {
-          description: "Verifique a conexão e recarregue a página.",
-        });
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
-      setConversations((prev) => prev.filter((c) => c.id !== id));
+      await deleteConversation(id);
       if (selected?.id === id) setSelected(null);
-      toast.success("Conversa excluída.");
     } catch {
-      toast.error("Falha ao excluir a conversa.");
+      // Toast already handled by context
     } finally {
       setDeletingId(null);
       setConfirmDeleteId(null);
     }
   };
+
 
   return (
     <div className="space-y-5">
@@ -133,19 +113,36 @@ export function ConversationsTable() {
 
                 {/* Action buttons */}
                 <div className="flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setSelected(c)}
-                    className={cn(
-                      "rounded-md p-1.5 text-[var(--fg-subtle)] transition-all",
-                      "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
-                      "hover:bg-white/[0.06] hover:text-[var(--fg-muted)]",
-                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)]",
-                    )}
-                    aria-label="Ver mensagens"
-                  >
-                    <Eye className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  </button>
+                  <Tooltip content="Continuar conversa" side="top">
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/c/${c.id}`)}
+                      className={cn(
+                        "rounded-md p-1.5 text-[var(--accent-bright)] transition-all cursor-pointer",
+                        "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+                        "hover:bg-[var(--accent-soft)] hover:text-[var(--accent-bright)]",
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)]",
+                      )}
+                      aria-label="Continuar conversa"
+                    >
+                      <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    </button>
+                  </Tooltip>
+                  <Tooltip content="Ver mensagens" side="top">
+                    <button
+                      type="button"
+                      onClick={() => setSelected(c)}
+                      className={cn(
+                        "rounded-md p-1.5 text-[var(--fg-subtle)] transition-all cursor-pointer",
+                        "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+                        "hover:bg-white/[0.06] hover:text-[var(--fg-muted)]",
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)]",
+                      )}
+                      aria-label="Ver mensagens"
+                    >
+                      <Eye className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    </button>
+                  </Tooltip>
 
                   {confirmDeleteId === c.id ? (
                     <div className="flex items-center gap-1">
@@ -153,32 +150,34 @@ export function ConversationsTable() {
                         type="button"
                         onClick={() => void handleDelete(c.id)}
                         disabled={deletingId === c.id}
-                        className="rounded-md px-2 py-1 text-xs font-semibold text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-60 focus:outline-none"
+                        className="rounded-md px-2 py-1 text-xs font-semibold text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-60 focus:outline-none cursor-pointer"
                       >
                         {deletingId === c.id ? "…" : "Confirmar"}
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmDeleteId(null)}
-                        className="rounded-md px-2 py-1 text-xs text-[var(--fg-muted)] transition-colors hover:bg-white/[0.06] focus:outline-none"
+                        className="rounded-md px-2 py-1 text-xs text-[var(--fg-muted)] transition-colors hover:bg-white/[0.06] focus:outline-none cursor-pointer"
                       >
                         Cancelar
                       </button>
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDeleteId(c.id)}
-                      className={cn(
-                        "rounded-md p-1.5 text-[var(--fg-subtle)] transition-all",
-                        "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
-                        "hover:bg-red-500/10 hover:text-red-400",
-                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)]",
-                      )}
-                      aria-label="Excluir conversa"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-                    </button>
+                    <Tooltip content="Excluir conversa" side="top">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(c.id)}
+                        className={cn(
+                          "rounded-md p-1.5 text-[var(--fg-subtle)] transition-all cursor-pointer",
+                          "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+                          "hover:bg-red-500/10 hover:text-red-400",
+                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)]",
+                        )}
+                        aria-label="Excluir conversa"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      </button>
+                    </Tooltip>
                   )}
                 </div>
               </div>

@@ -6,6 +6,8 @@ import { CopilotKit } from "@copilotkit/react-core";
 import { Toaster } from "sonner";
 import { appConfig } from "@/config/app.config";
 import { AppShell } from "@/components/layout/AppShell";
+import { ConversationsProvider } from "@/components/conversations/ConversationsContext";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,7 +49,9 @@ export default function RootLayout({
         <div className="app-aurora" aria-hidden />
         <div className="app-grain" aria-hidden />
         <CopilotKit runtimeUrl="/api/copilotkit" useSingleEndpoint={true}>
-          <AppShell>{children}</AppShell>
+          <ConversationsProvider>
+            <AppShell>{children}</AppShell>
+          </ConversationsProvider>
         </CopilotKit>
         <Toaster
           theme="dark"

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { X, Trash2, MessageSquare, Bot, User } from "lucide-react";
+import { X, Trash2, MessageSquare, Bot, User, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ConversationRow } from "./ConversationsTable";
 
@@ -42,6 +43,7 @@ function formatTime(iso: string): string {
 }
 
 export function ConversationDetailModal({ conversation, onClose, onDelete }: Props) {
+  const router = useRouter();
   const reduce = useReducedMotion();
   const [msgs, setMsgs] = useState<MessageRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,8 +132,20 @@ export function ConversationDetailModal({ conversation, onClose, onDelete }: Pro
               </p>
             </div>
 
-            {/* Delete + close */}
+            {/* Continue + Delete + close */}
             <div className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  router.push(`/c/${conversation.id}`);
+                }}
+                className="flex items-center gap-1.5 rounded-lg border border-[var(--accent-line)] bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--accent-bright)] transition-colors hover:bg-[var(--accent-bright)] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)]"
+                aria-label="Continuar conversa"
+              >
+                <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
+                Continuar
+              </button>
               {confirmDelete ? (
                 <>
                   <button

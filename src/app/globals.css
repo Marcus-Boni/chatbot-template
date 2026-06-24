@@ -206,6 +206,54 @@ body {
 }
 
 /* ============================================================
+   CopilotKit Suggestions — bento style suggestion cards
+   ============================================================ */
+.copilotkit-surface .copilotKitChatBody .copilotKitSuggestions,
+.copilotkit-surface .copilotKitChatBody .suggestions {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0.75rem !important;
+  margin-top: 1.5rem !important;
+  padding: 0 0.5rem !important;
+  background: transparent !important;
+}
+
+@media (min-width: 640px) {
+  .copilotkit-surface .copilotKitChatBody .copilotKitSuggestions,
+  .copilotkit-surface .copilotKitChatBody .suggestions {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+.copilotkit-surface .copilotKitChatBody .copilotKitSuggestion,
+.copilotkit-surface .copilotKitChatBody .suggestion {
+  background: var(--panel) !important;
+  border: 1px solid var(--line) !important;
+  padding: 1rem !important;
+  border-radius: var(--radius) !important;
+  color: var(--fg-muted) !important;
+  font-size: 0.85rem !important;
+  text-align: left !important;
+  line-height: 1.5 !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  min-height: 80px !important;
+}
+
+.copilotkit-surface .copilotKitChatBody .copilotKitSuggestion:hover,
+.copilotkit-surface .copilotKitChatBody .suggestion:hover {
+  background: var(--panel-2) !important;
+  border-color: var(--accent-line) !important;
+  color: var(--fg) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 18px rgba(34, 197, 94, 0.08) !important;
+}
+
+/* ============================================================
    Reduced motion: disable all transitions/animations
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
