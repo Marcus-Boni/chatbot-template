@@ -306,7 +306,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const { conversations, loading, isSidebarCollapsed, setIsSidebarCollapsed } = useConversations();
+  const { conversations, loading, isSidebarCollapsed, setIsSidebarCollapsed, startNewConversation } = useConversations();
 
   // GSAP hero accent: a tasteful, one-shot staggered reveal of the sidebar
   // chrome on mount, plus a drawn accent line. Respects reduced-motion.
@@ -376,7 +376,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => {
-                router.push("/");
+                startNewConversation();
                 if (collapse) collapse();
               }}
               aria-label="Nova conversa"
@@ -392,7 +392,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={() => {
-              router.push("/");
+              startNewConversation();
               if (collapse) collapse();
             }}
             className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--accent-line)] bg-[var(--accent-soft)] px-4 text-sm font-semibold text-[var(--accent-bright)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_22px_rgba(34,197,94,0.06)] transition-all duration-200 hover:border-emerald-400/50 hover:bg-emerald-500/18 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-line)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-elevated)]"

@@ -16,6 +16,15 @@ interface ConversationsContextType {
   loading: boolean;
   isSidebarCollapsed: boolean;
   setIsSidebarCollapsed: (collapsed: boolean) => void;
+  /**
+   * Bumped every time the user starts a fresh conversation. `ChatPanel` lists it
+   * as a dependency when deriving the live thread id, so a new chat always gets a
+   * brand-new thread — even when the browser URL is already `/` (the first
+   * message rewrites it to `/c/<id>` via `replaceState` without a Next
+   * navigation, so `router.push("/")` alone would be a no-op).
+   */
+  newChatToken: number;
+  startNewConversation: () => void;
   refreshConversations: () => Promise<void>;
   renameConversation: (id: string, title: string) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
@@ -27,6 +36,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsedState] = useState(false);
+  const [newChatToken, setNewChatToken] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -66,6 +76,15 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshConversations();
   }, [pathname, refreshConversations]);
+
+  const startNewConversation = useCallback(() => {
+    // Force `ChatPanel` to derive a fresh thread id even if we're already on `/`
+    // (where the URL may have been rewritten to `/c/<id>` via replaceState).
+    setNewChatToken((t) => t + 1);
+    // Clean the address bar so a reload lands on a blank chat, then navigate.
+    window.history.replaceState(null, "", "/");
+    router.push("/");
+  }, [router]);
 
   const renameConversation = async (id: string, title: string) => {
     try {
@@ -112,6 +131,8 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
         loading,
         isSidebarCollapsed,
         setIsSidebarCollapsed,
+        newChatToken,
+        startNewConversation,
         refreshConversations,
         renameConversation,
         deleteConversation,

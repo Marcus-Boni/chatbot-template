@@ -21,7 +21,7 @@ pnpm db:generate              # regenerate SQL migration after editing src/db/sc
 pnpm db:migrate               # ONLY ensures `CREATE EXTENSION vector` — does NOT create tables
 ```
 
-Windows + PowerShell + **pnpm**. Node 20+. Env vars (`.env`): `OPENAI_API_KEY`, `DATABASE_URL` (Neon), `TRANSCRIPTS_DIR`.
+Windows + PowerShell + **pnpm**. Node 20+. Env vars (`.env`): `OPENAI_API_KEY`, `DATABASE_URL` (Neon), `TRANSCRIPTS_DIR`. Optional (Azure DevOps work-item integration, self-disables if unset): `AZURE_DEVOPS_ORG_URL`, `AZURE_DEVOPS_PROJECT`, `AZURE_DEVOPS_PAT`, plus `AZURE_DEVOPS_DEFAULT_WORK_ITEM_TYPE`/`AZURE_DEVOPS_AREA_PATH`/`AZURE_DEVOPS_ITERATION_PATH`.
 
 ## Architecture
 
@@ -36,14 +36,16 @@ src/
 │   ├── (chat)/page.tsx           # "/" route (route group); sources/page.tsx = "/sources"
 │   ├── api/copilotkit/route.ts   # CopilotKit V2 runtime (see gotchas)
 │   ├── api/ingest/route.ts       # GET lists docs, POST triggers re-ingest
+│   ├── api/azure-devops/work-items/route.ts  # POST creates Work Items (server-side PAT); GET = config status
 │   └── api/conversations/...      # conversation + message persistence
 ├── core/
 │   ├── context-store/            # ContextStore abstraction (types, memory, pgvector, factory, contract)
 │   ├── loaders/                  # Loader abstraction: teams-parser (pure) + teams-docx-loader (mammoth I/O)
 │   ├── ingestion/                # chunk (transcript-aware) → embed (OpenAI) → pipeline
-│   └── rag/                      # search-meetings (semantic, dedup+score floor) + list-meetings (date-ordered) + prompt
+│   ├── rag/                      # search-meetings (semantic) + list-meetings (date-ordered) + propose-work-items (pure draft normalizer) + prompt
+│   └── azure-devops/            # types + config (server-only PAT reader) + client (toPatchDocument + createWorkItems REST 7.1)
 ├── db/                           # drizzle schema, neon client, migrations
-└── components/                   # chat/ (ChatPanel, CitationCard, SearchMeetingsRender), layout/AppShell, sources/
+└── components/                   # chat/ (ChatPanel, CitationCard, SearchMeetingsRender, WorkItemsProposalRender/Card), layout/AppShell, sources/
 ```
 
 Path alias: `@/*` → `src/*`. TS strict. To replicate for a new client, edit only `src/config/app.config.ts` + drop `public/logo.svg` + point `TRANSCRIPTS_DIR` (see README "Replicate for another client").
@@ -58,6 +60,15 @@ The README and `docs/superpowers/plans/*` describe the **v1** API (`CopilotRunti
 - **System prompt is set in two places**: backend `BuiltInAgent.prompt` AND client `<CopilotChat instructions={...}>`. In 1.59 the backend `properties.systemMessage` does NOT reliably set the LLM system prompt, so the client `instructions` prop is the supported mechanism — keep both pointed at `appConfig.systemPrompt`.
 - **Generative UI** (`SearchMeetingsRender.tsx`): uses `useRenderTool` from `@copilotkit/react-core/v2`. Status is `"inProgress" | "executing" | "complete"`; the `result` arrives as a **JSON string** (parse it) shaped as `SearchResponse`.
 - **Message persistence** (`ChatPanel.tsx`): reads `visibleMessages` from `useCopilotChat()` (no publicApiKey needed) and POSTs each completed message. Gate on `message.status?.code === "Success"` — `Pending` messages are streaming partials and would persist truncated content. Dedupe via a ref `Set` of message ids.
+
+## Azure DevOps work-item generation (human-in-the-loop)
+
+Turns meeting action items into Azure DevOps Work Items. Flow: agent calls the **`proposeWorkItems`** tool → `proposeWorkItems` (`src/core/rag/propose-work-items.ts`) is **pure / side-effect free** (just normalizes drafts + attaches non-secret org/project) → **`WorkItemsProposalRender`** shows an **editable card** → user clicks "Criar no Azure DevOps" → `POST /api/azure-devops/work-items` creates them with the server-side PAT → card shows links to the created items.
+
+- **The agent never creates anything and never sees the PAT.** Creation is a separate, human-triggered server route — deliberate HITL split for an irreversible, outward-facing action. Don't "optimize" by letting the tool create directly.
+- **PAT is server-only**: read via `src/core/azure-devops/config.ts`, which does `import "server-only"`. Never read `AZURE_DEVOPS_*` secrets in `app.config.ts` (it's imported by client components). `app.config.azureDevOps` holds UI-only, non-secret values.
+- **Client (`src/core/azure-devops/client.ts`)**: REST api-version **7.1**, `POST .../wit/workitems/$<Type>` with `Content-Type: application/json-patch+json` and Basic auth = base64(`:<PAT>`). `toPatchDocument` is the pure, unit-tested mapper; `createWorkItems` is fault-tolerant (one bad item doesn't abort the batch — partial `errors[]`). No `azure-devops-node-api` dependency — native `fetch`.
+- Integration **self-disables** when env is unset: the tool still proposes, but the card warns and the POST returns 503. Build works without the vars (lazy, like the rest).
 
 ## Testing & adding a ContextStore
 

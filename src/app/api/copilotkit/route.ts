@@ -9,6 +9,7 @@ import { z } from "zod";
 import { createContextStore } from "@/core/context-store/factory";
 import { searchMeetings } from "@/core/rag/search-meetings";
 import { listMeetings } from "@/core/rag/list-meetings";
+import { proposeWorkItems } from "@/core/rag/propose-work-items";
 import { appConfig } from "@/config/app.config";
 
 // Build the handler once per cold start (module scope is fine — no DB/OpenAI
@@ -40,11 +41,45 @@ const listMeetingsTool = defineTool({
   execute: async ({ limit }) => listMeetings(limit),
 });
 
+const proposeWorkItemsTool = defineTool({
+  name: "proposeWorkItems",
+  description:
+    "Propõe tarefas (Work Items do Azure DevOps) a partir dos action items da " +
+    "reunião. NÃO cria nada — apenas estrutura uma lista que o usuário revisa e " +
+    "confirma na interface antes de criar. Use quando o usuário pedir para gerar " +
+    "tarefas OU quando a reunião claramente definiu ações/responsáveis/próximos " +
+    "passos que valeria registrar. Fundamente os itens nos trechos (use " +
+    "searchMeetings antes). Cada item = uma tarefa objetiva.",
+  parameters: z.object({
+    items: z
+      .array(
+        z.object({
+          title: z.string().describe("Título curto e acionável da tarefa"),
+          description: z
+            .string()
+            .optional()
+            .describe("Contexto da tarefa: o que fazer e por quê, com base na reunião"),
+          type: z
+            .string()
+            .optional()
+            .describe("Tipo do Work Item (padrão: Task). Ex.: Task, Bug, User Story"),
+          tags: z.array(z.string()).optional().describe("Tags opcionais"),
+          priority: z
+            .number()
+            .optional()
+            .describe("Prioridade 1 (alta) a 4 (baixa)"),
+        }),
+      )
+      .describe("Lista de tarefas propostas a partir da reunião"),
+  }),
+  execute: async ({ items }) => proposeWorkItems({ items }),
+});
+
 const agent = new BuiltInAgent({
   model: appConfig.llm.model,
   // OPENAI_API_KEY is picked up from the environment automatically
   prompt: appConfig.systemPrompt,
-  tools: [searchMeetingsTool, listMeetingsTool],
+  tools: [searchMeetingsTool, listMeetingsTool, proposeWorkItemsTool],
   maxSteps: appConfig.llm.maxSteps,
   maxOutputTokens: appConfig.llm.maxOutputTokens,
   toolChoice: "auto",

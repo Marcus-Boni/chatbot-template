@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAgent } from "@copilotkit/react-core/v2";
 import { CopilotChat } from "@copilotkit/react-ui";
 import { appConfig } from "@/config/app.config";
 import { SearchMeetingsRender } from "./SearchMeetingsRender";
+import { WorkItemsProposalRender } from "./WorkItemsProposalRender";
 import {
   HistoricalMessages,
   type HistoricalMessage,
@@ -35,24 +36,26 @@ function deriveTitle(content: string): string {
  * `onRunFinalized` fires once per completed turn with the final messages — the
  * right moment to persist (no streaming partials, full assistant content).
  *
- * When `initialThreadId` is provided (from a `/c/[id]` route), new messages are
- * persisted against that same conversation id rather than the agent's internal
- * threadId — this allows conversations to span page reloads. When no
- * `initialThreadId` is given (root `/` route), the agent's threadId is used as
- * the conversation id and the URL is updated to `/c/<id>` after the first
- * successful persist (ChatGPT/Claude behavior).
+ * `threadId` is the conversation id shared with `<CopilotChat threadId>` so the
+ * persisted record and the live agent thread stay in lockstep. For an existing
+ * conversation (`isExistingThread`, from a `/c/[id]` route) the row already
+ * exists, so we only append messages. For a brand-new thread (root `/` route) we
+ * lazily create the conversation row on the first message and rewrite the URL to
+ * `/c/<id>` so a reload restores it (ChatGPT/Claude behavior).
  */
-function useConversationPersistence(initialThreadId?: string) {
+function useConversationPersistence(
+  threadId: string,
+  isExistingThread: boolean,
+  onNewThreadPersisted?: () => void,
+) {
   const { agent } = useAgent();
   const ensuredThreads = useRef<Set<string>>(new Set());
   const persistedMsgIds = useRef<Set<string>>(new Set());
 
   // Mark the thread as ensured if it comes from the DB (already exists)
   useEffect(() => {
-    if (initialThreadId && !ensuredThreads.current.has(initialThreadId)) {
-      ensuredThreads.current.add(initialThreadId);
-    }
-  }, [initialThreadId]);
+    if (isExistingThread) ensuredThreads.current.add(threadId);
+  }, [threadId, isExistingThread]);
 
   useEffect(() => {
     if (!agent) return;
@@ -60,7 +63,7 @@ function useConversationPersistence(initialThreadId?: string) {
     const persist = async (
       messages: ReadonlyArray<{ id: string; role: string; content?: unknown }>,
     ) => {
-      const threadIdToUse = initialThreadId || agent.threadId;
+      const threadIdToUse = threadId;
 
       const pending = messages.filter(
         (m) =>
@@ -108,14 +111,18 @@ function useConversationPersistence(initialThreadId?: string) {
           if (!res.ok) throw new Error("persist failed");
         }
 
-        // Silently update the URL to /c/<id> so that F5 reloads this thread.
-        // We use window.history.replaceState instead of router.replace because
-        // router.replace triggers a Next.js navigation, causing the /c/[id]
-        // Server Component to load — which re-fetches the just-persisted
-        // messages and renders them as "historical", duplicating what's
-        // already visible in the live CopilotChat.
-        if (isNewThread && !initialThreadId) {
-          window.history.replaceState(null, "", `/c/${threadIdToUse}`);
+        if (isNewThread) {
+          // Silently update the URL to /c/<id> so that F5 reloads this thread.
+          // We use window.history.replaceState instead of router.replace
+          // because router.replace triggers a Next.js navigation, causing the
+          // /c/[id] Server Component to load — which re-fetches the
+          // just-persisted messages and renders them as "historical",
+          // duplicating what's already visible in the live CopilotChat.
+          if (!isExistingThread) {
+            window.history.replaceState(null, "", `/c/${threadIdToUse}`);
+          }
+          // Surface the new conversation in the sidebar without a reload.
+          onNewThreadPersisted?.();
         }
       } catch {
         // Roll back optimistic marks so a later run retries these.
@@ -128,7 +135,7 @@ function useConversationPersistence(initialThreadId?: string) {
       onRunFinalized: ({ messages }) => void persist(messages),
     });
     return () => sub.unsubscribe();
-  }, [agent, initialThreadId]);
+  }, [agent, threadId, isExistingThread, onNewThreadPersisted]);
 }
 
 export function ChatPanel({
@@ -138,11 +145,22 @@ export function ChatPanel({
   initialThreadId?: string;
   initialMessages?: HistoricalMessage[];
 } = {}) {
-  useConversationPersistence(initialThreadId);
-  const { isSidebarCollapsed, setIsSidebarCollapsed } = useConversations();
+  const {
+    isSidebarCollapsed,
+    setIsSidebarCollapsed,
+    newChatToken,
+    refreshConversations,
+  } = useConversations();
 
-  const hasHistory =
-    initialMessages !== undefined && initialMessages.length > 0;
+  // Durable conversation id — used for DB persistence and the `/c/<id>` URL.
+  // An existing conversation keeps its id; a new one gets a fresh uuid.
+  // `newChatToken` is a dep so "Nova conversa" yields a new conversation even
+  // when the URL is already `/` (see ConversationsContext.startNewConversation).
+  const conversationId = useMemo(
+    () => initialThreadId ?? crypto.randomUUID(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [initialThreadId, newChatToken],
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -151,6 +169,7 @@ export function ChatPanel({
           {isSidebarCollapsed && (
             <Tooltip content="Expandir barra lateral" side="bottom">
               <button
+                type="button"
                 onClick={() => setIsSidebarCollapsed(false)}
                 className="hidden md:flex p-1.5 rounded-lg border border-[var(--line)] bg-[var(--panel)] text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-white/[0.04] transition-colors cursor-pointer"
               >
@@ -178,32 +197,105 @@ export function ChatPanel({
       </header>
 
       <SearchMeetingsRender />
+      <WorkItemsProposalRender />
 
-      <div className="copilotkit-surface mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-y-auto px-3 sm:px-5">
-        {/* Render restored messages from the database */}
-        {hasHistory && <HistoricalMessages messages={initialMessages} />}
+      {/* Keyed on the view so each conversation (and each "Nova conversa") fully
+          remounts the thread: a clean, fresh ephemeral agent thread and live
+          message list, with no leftover from the previously-viewed conversation. */}
+      <ChatThread
+        key={`${conversationId}:${newChatToken}`}
+        conversationId={conversationId}
+        isExistingThread={initialThreadId !== undefined}
+        initialMessages={initialMessages}
+        onNewThreadPersisted={refreshConversations}
+      />
+    </div>
+  );
+}
 
-        {/* Live CopilotChat — handles new messages from this point forward */}
-        <CopilotChat
-          instructions={appConfig.systemPrompt}
-          suggestions={
-            hasHistory
-              ? []
-              : appConfig.suggestedQuestions.map((q) => ({
-                  title: q,
-                  message: q,
-                }))
-          }
-          labels={{
-            title: appConfig.brand.name,
-            initial: hasHistory
-              ? "Continue a conversa a partir do ponto anterior."
-              : `Pergunte sobre as reuniões da ${appConfig.brand.name}.`,
-          }}
-          AssistantMessage={CustomAssistantMessage}
-          className="h-full"
-        />
-      </div>
+/**
+ * One conversation's live thread. Mounted with a `key` per view, so everything
+ * here is created fresh on each conversation switch.
+ */
+function ChatThread({
+  conversationId,
+  isExistingThread,
+  initialMessages,
+  onNewThreadPersisted,
+}: {
+  conversationId: string;
+  isExistingThread: boolean;
+  initialMessages?: HistoricalMessage[];
+  onNewThreadPersisted: () => void;
+}) {
+  const { agent } = useAgent();
+
+  // Ephemeral agent thread, unique to *this view* and deliberately NOT the
+  // conversation id. The CopilotKit runtime keeps an in-memory message store
+  // keyed by threadId (see runner GLOBAL_STORE), and the live `<CopilotChat>`
+  // replays it whenever it connects. Reusing a conversation id would replay that
+  // conversation's own runs on re-open (duplicating the DB-restored history),
+  // and a shared thread leaked one conversation's messages into another. A
+  // brand-new id always resolves to an empty server store, so the only restored
+  // history is the one we render ourselves from the database, below.
+  //
+  // Lazy `useState` (not useMemo): `crypto.randomUUID()` is impure, so a useMemo
+  // recomputes it on incidental re-renders — including mid-run — which would
+  // rotate the thread out from under an active tool call and abort it
+  // ("RUN_FINISHED while tool calls are still active"). The `key` on this
+  // component is what makes the id fresh per view; within a view it never moves.
+  const [agentThreadId] = useState(() => crypto.randomUUID());
+
+  // Bind the singleton agent to this view's thread *during render* — before the
+  // child `<CopilotChat>` runs its connect effect (child effects run before the
+  // parent's), so it never connects on the previous view's thread and replays
+  // those messages. Idempotent and stable per view, so this never fires mid-run.
+  if (agent && agent.threadId !== agentThreadId) {
+    // eslint-disable-next-line react-hooks/immutability
+    agent.threadId = agentThreadId;
+  }
+
+  // Drop any live messages still held by the singleton agent from a previous
+  // view. Restored history is rendered separately from the DB, so this never
+  // drops it.
+  useEffect(() => {
+    agent?.setMessages([]);
+    agent?.setState({});
+    // Run once on mount — `key` guarantees a fresh mount per view.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useConversationPersistence(conversationId, isExistingThread, onNewThreadPersisted);
+
+  const hasHistory =
+    initialMessages !== undefined && initialMessages.length > 0;
+
+  return (
+    <div className="copilotkit-surface mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-y-auto px-3 sm:px-5">
+      {/* Render restored messages from the database */}
+      {hasHistory && <HistoricalMessages messages={initialMessages} />}
+
+      {/* Live CopilotChat — renders the shared agent's messages, scoped to this
+          view's fresh ephemeral thread. */}
+      <CopilotChat
+        instructions={appConfig.systemPrompt}
+        suggestions={
+          hasHistory
+            ? []
+            : appConfig.suggestedQuestions.map((q) => ({
+                title: q,
+                message: q,
+              }))
+        }
+        labels={{
+          title: appConfig.brand.name,
+          initial: hasHistory
+            ? "Continue a conversa a partir do ponto anterior."
+            : `Pergunte sobre as reuniões da ${appConfig.brand.name}.`,
+        }}
+        AssistantMessage={CustomAssistantMessage}
+        className="h-full"
+      />
     </div>
   );
 }
