@@ -165,14 +165,55 @@ body {
 .copilotkit-surface .copilotKitMessages {
   background: transparent;
 }
+
+/* ---- Stable embedded chat layout -------------------------------------------
+   Restored history is injected into CopilotKit's own message viewport through
+   a custom Messages slot, so the input remains the final item in the chat body
+   and tool/result cards cannot fall below the composer. */
+.copilotkit-surface .copilotKitChat {
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.copilotkit-surface .copilotKitChatBody {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.copilotkit-surface .copilotKitChat .copilotKitMessages {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1 1 auto;
+}
+.copilotkit-surface .copilotKitChat .copilotKitMessagesContainer {
+  padding-left: 0;
+  padding-right: 0;
+}
+.copilotkit-surface .restoredMessages {
+  display: contents;
+}
+.copilotkit-surface .copilotKitInputContainer {
+  position: static;
+  z-index: 20;
+  padding-top: 0.75rem;
+  background: linear-gradient(
+    to top,
+    var(--bg) 70%,
+    color-mix(in srgb, var(--bg) 35%, transparent) 100%
+  );
+}
+
 .copilotkit-surface .copilotKitInput {
   background: var(--panel-2);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
+  width: 100%;
 }
 .copilotkit-surface .copilotKitAssistantMessage,
 .copilotkit-surface .copilotKitUserMessage {
-  font-size: 0.9375rem;
+  /* --chat-font-scale is set by SettingsProvider from the "Tamanho do texto"
+     preference (defaults to 1 via the fallback). */
+  font-size: calc(0.9375rem * var(--chat-font-scale, 1));
   line-height: 1.65;
 }
 /* The v1 default `.copilotKitMessage.copilotKitUserMessage` (specificity 0,2,0)
@@ -232,55 +273,97 @@ body {
 }
 
 /* ============================================================
-   CopilotKit Suggestions — bento style suggestion cards
+   CopilotKit Suggestions — compact prompts aligned with composer
    ============================================================ */
+.copilotkit-surface .copilotKitMessagesFooter {
+  flex: 0 0 auto;
+}
+
+.copilotkit-surface .copilotKitMessages footer .copilotKitSuggestions,
+.copilotkit-surface .copilotKitMessages footer .suggestions,
 .copilotkit-surface .copilotKitChatBody .copilotKitSuggestions,
 .copilotkit-surface .copilotKitChatBody .suggestions {
   display: grid !important;
   grid-template-columns: 1fr !important;
-  gap: 0.75rem !important;
-  margin-top: 1.5rem !important;
-  padding: 0 0.5rem !important;
+  gap: 0.625rem !important;
+  margin: 0 0 1rem !important;
+  padding: 0 !important;
   background: transparent !important;
 }
 
 @media (min-width: 640px) {
+  .copilotkit-surface .copilotKitMessages footer .copilotKitSuggestions,
+  .copilotkit-surface .copilotKitMessages footer .suggestions,
   .copilotkit-surface .copilotKitChatBody .copilotKitSuggestions,
   .copilotkit-surface .copilotKitChatBody .suggestions {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
 
+.copilotkit-surface .copilotKitMessages footer .copilotKitSuggestion,
+.copilotkit-surface .copilotKitMessages footer .suggestion,
 .copilotkit-surface .copilotKitChatBody .copilotKitSuggestion,
 .copilotkit-surface .copilotKitChatBody .suggestion {
   background: var(--panel) !important;
   border: 1px solid var(--line) !important;
-  padding: 1rem !important;
-  border-radius: var(--radius) !important;
+  min-height: 3.5rem !important;
+  padding: 0.75rem 0.875rem !important;
+  border-radius: 0.5rem !important;
   color: var(--fg-muted) !important;
-  font-size: 0.85rem !important;
+  font-size: 0.8125rem !important;
   text-align: left !important;
-  line-height: 1.5 !important;
+  line-height: 1.4 !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   cursor: pointer !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  min-height: 80px !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  overflow-wrap: anywhere !important;
 }
 
+.copilotkit-surface .copilotKitMessages footer .copilotKitSuggestion:hover,
+.copilotkit-surface .copilotKitMessages footer .suggestion:hover,
 .copilotkit-surface .copilotKitChatBody .copilotKitSuggestion:hover,
 .copilotkit-surface .copilotKitChatBody .suggestion:hover {
   background: var(--panel-2) !important;
   border-color: var(--accent-line) !important;
   color: var(--fg) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 18px rgba(34, 197, 94, 0.08) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.06) !important;
 }
 
 /* ============================================================
-   Reduced motion: disable all transitions/animations
+   Agent activity trail — animated "typing" dots
+   ============================================================ */
+.copilot-typing-dots {
+  letter-spacing: 0;
+}
+.copilot-typing-dot {
+  animation: copilotTypingDot 1.4s infinite both;
+}
+.copilot-typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.copilot-typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes copilotTypingDot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+   Reduced motion: disable all transitions/animations.
+   Triggered by the OS setting OR the in-app "Reduzir animações"
+   preference (SettingsProvider toggles `.force-reduce-motion`).
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -291,4 +374,13 @@ body {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+html.force-reduce-motion *,
+html.force-reduce-motion *::before,
+html.force-reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
 }

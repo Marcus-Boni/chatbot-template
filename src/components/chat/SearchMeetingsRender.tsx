@@ -2,7 +2,7 @@
 
 import { useRenderTool } from "@copilotkit/react-core/v2";
 import { z } from "zod";
-import { Loader2, Search, SearchX } from "lucide-react";
+import { Search, SearchX } from "lucide-react";
 import type { SearchResponse } from "@/core/rag/search-meetings";
 import { CitationCard } from "./CitationCard";
 
@@ -26,13 +26,12 @@ export function SearchMeetingsRender() {
       topK: z.number().optional(),
     }),
     render: ({ status, result }) => {
+      // While the tool runs, the live progress is shown centrally by the
+      // <AgentActivityTrail> (the chat's loading indicator), so we render
+      // nothing here and avoid a duplicate "searching…" row. We only render
+      // once the citations are ready.
       if (status === "inProgress" || status === "executing") {
-        return (
-          <div className="my-2 flex items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-xs text-[var(--fg-muted)]">
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent-bright)]" />
-            Buscando nas transcrições das reuniões…
-          </div>
-        );
+        return <span hidden />;
       }
 
       // status === "complete": result is a JSON string — parse it.

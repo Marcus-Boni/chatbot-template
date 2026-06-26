@@ -2,7 +2,6 @@
 
 import { useRenderTool } from "@copilotkit/react-core/v2";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
 import type { ProposeWorkItemsResponse } from "@/core/rag/propose-work-items";
 import { WorkItemProposalCard } from "./WorkItemProposalCard";
 
@@ -27,13 +26,10 @@ export function WorkItemsProposalRender() {
       ),
     }),
     render: ({ status, result }) => {
+      // Progress is shown centrally by <AgentActivityTrail>; render only the
+      // final, interactive proposal card here.
       if (status === "inProgress" || status === "executing") {
-        return (
-          <div className="my-2 flex items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-xs text-[var(--fg-muted)]">
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent-bright)]" />
-            Preparando tarefas a partir da reunião…
-          </div>
-        );
+        return <span hidden />;
       }
 
       let payload: ProposeWorkItemsResponse | undefined;

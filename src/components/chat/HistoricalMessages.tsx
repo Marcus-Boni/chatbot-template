@@ -12,9 +12,9 @@ export interface HistoricalMessage {
  * Renders previously-persisted messages using the same CopilotKit CSS classes
  * so they blend seamlessly with live messages rendered by `<CopilotChat>`.
  *
- * This component is mounted *inside* the `.copilotKitMessagesContainer` flow
- * (injected before the CopilotChat component) so that the historical messages
- * share the same scroll container and visual rhythm as the live messages.
+ * This component is mounted inside the customized CopilotKit
+ * `.copilotKitMessagesContainer` flow so historical messages share the same
+ * scroll container and visual rhythm as live messages.
  */
 export function HistoricalMessages({
   messages,
@@ -24,7 +24,7 @@ export function HistoricalMessages({
   if (messages.length === 0) return null;
 
   return (
-    <div className="copilotKitMessagesContainer">
+    <div className="restoredMessages">
       {messages.map((msg) => (
         <div
           key={msg.id}

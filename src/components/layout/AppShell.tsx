@@ -17,6 +17,7 @@ import {
   PanelLeft,
   PanelLeftClose,
   MessageSquare,
+  Settings,
 } from "lucide-react";
 import { appConfig } from "@/config/app.config";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 const NAV = [
   { href: "/sources", label: "Fontes", icon: Library },
   { href: "/conversations", label: "Histórico", icon: History },
+  { href: "/settings", label: "Configurações", icon: Settings },
 ] as const;
 
 const sidebarItemClass =

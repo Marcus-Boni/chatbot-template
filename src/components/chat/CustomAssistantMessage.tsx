@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   AssistantMessageProps,
   Markdown,
@@ -52,10 +52,6 @@ export const CustomAssistantMessage = (props: AssistantMessageProps) => {
       onThumbsDown(message);
     }
   };
-
-  const LoadingIcon = () => (
-    <span data-testid="copilot-loading-cursor">{icons.activityIcon}</span>
-  );
 
   const content = message?.content || "";
   const subComponent = message?.generativeUI?.() ?? props.subComponent;
@@ -138,7 +134,6 @@ export const CustomAssistantMessage = (props: AssistantMessageProps) => {
       {renderAfter ? (
         <div style={{ marginBottom: "0.5rem" }}>{subComponent}</div>
       ) : null}
-      {isLoading && <LoadingIcon />}
     </>
   );
 };
