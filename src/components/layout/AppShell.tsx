@@ -546,7 +546,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(18rem_12rem_at_20%_0%,rgba(34,197,94,0.10),transparent_65%)]"
+          className="sidebar-aurora pointer-events-none absolute inset-x-0 top-0 h-48"
           aria-hidden
         />
         <div className={cn("relative h-full flex flex-col transition-all duration-300", isSidebarCollapsed ? "w-[5.25rem]" : "w-80")}>
